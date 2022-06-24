@@ -1,74 +1,13 @@
+;; -*- Emacs-Lisp -*- ~*~ UTF-8 ~*~
 
-(require 'cl)
-(require 'compile)
-(setq exec-path (cons "~/bin" exec-path))
+;; Allow custom packages to be installed
+(require 'package)
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
+(add-to-list 'package-archives '("elpa" . "https://elpa.gnu.org/packages/"))
+(package-initialize)
 
-(load-theme 'misterioso)
-(if (eq system-type 'darwin)
-    (progn
-      (setq mac-option-modifier 'meta)
-      (setq mac-command-modifier 'meta)
-      (set-default-font "Menlo-12")))
 
-(add-to-list 'load-path "~/projects/emacs-stuff/")
-(add-to-list 'load-path "~/projects/Matlab Packages/emacs")
-(load-library "matlab-load")
-(add-to-list 'load-path "~/projects/dart-mode")
-(add-to-list 'load-path "~/projects/flutter")
-
-(add-to-list 'load-path "~/projects/dart-mode/")
-(add-to-list 'load-path "~/projects/dash.el/")
-(add-to-list 'load-path "~/projects/s.el/")
-(add-to-list 'auto-mode-alist '("\\.dart\\'" . dart-mode))
-(autoload 'dart-mode "dart-mode")
-
-;; (use-package flutter
-;;              :after dart-mode
-;;              :bind (:map dart-mode-map
-;;                          ("C-M-x" . #'flutter-run-or-hot-reload))
-;;              :custom
-;;              (flutter-sdk-path "~/projects/flutter"))
-
-(add-to-list 'load-path "~/projects/emacs-stuff/julia-emacs")
-(require 'julia-mode)
-
-;; Make mouse wheel / trackpad scrolling less jerky
-(setq mouse-wheel-scroll-amount '(1))
-(dolist (modifier '("" "S-" "C-" "M-"))
-  (dolist (multiple '("" "double-" "triple-"))
-    (dolist (direction '("right" "left"))
-      (global-set-key (read-kbd-macro (concat "<" modifier multiple "wheel-" direction ">")) 'ignore))))
-;; scroll one line at a time (less "jumpy" than defaults)
-(setq mouse-wheel-scroll-amount '(1 ((shift) . 1))) ;; one line at a time
-;(setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
-(setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
-(setq scroll-step 1) ;; keyboard scroll one line at a time
-
-;; Make default frame height be the screen height
-;; @FIX make 
-;(add-to-list 'default-frame-alist '(height . 50))
-
-(global-font-lock-mode t)
-(setq transient-mark-mode t)
-(setq require-final-newline t)
-(setq-default indent-tabs-mode nil)
-
-(global-set-key [home] 'beginning-of-line)
-(global-set-key [end] 'end-of-line)
-(global-set-key "\M-g" 'beginning-of-buffer)
-(global-set-key "\M-G" 'end-of-buffer)
-(global-set-key "\C-p" 'goto-line)
-(global-set-key "\C-f" 'clang-format-region)
-(defalias 'qrr 'query-replace-regexp)
-(defalias 'rr 'replace-regexp)
-
-(if (fboundp 'tool-bar-mode) (tool-bar-mode -1))
-
-(when (>= emacs-major-version 24)
-  (require 'package)
-  (package-initialize)
-  (add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/") t))
-
+;; A helper function to install a package if it isn't already
 (defun ensure-package-installed (&rest packages)
   "Assure every package is installed, ask for installation if it’s not.
 Return a list of installed packages or nil for every skipped package."
@@ -78,90 +17,218 @@ Return a list of installed packages or nil for every skipped package."
      (if (package-installed-p package)
          nil
        (if (y-or-n-p (format "Package %s is missing. Install it? " package))
+	   (package-refresh-contents)
            (package-install package)
          package)))
-   packages)
+   packages))
+
+
+;; Define preferred color theme
+;; Possible options:
+;; adwaita 	deeper-blue 	dichromacy 	leuven		light-blue
+;; manoj-dark	misterioso	tango		tango-dark 	tsdh-dark
+;; sdh-light 	wheatgrass	whiteboard 	wombat
+(load-theme 'tsdh-dark)
+
+
+;; Highlight numeric literals
+(ensure-package-installed 'highlight-numbers)
+(require 'highlight-numbers)
+(add-hook 'prog-mode-hook 'highlight-numbers-mode)
+
+
+;; Make mouse scrolling less jerky
+(setq mouse-wheel-scroll-amount '(1))
+(dolist (modifier '("" "S-" "C-" "M-"))
+  (dolist (multiple '("" "double-" "triple-"))
+    (dolist (direction '("right" "left"))
+      (global-set-key
+       (read-kbd-macro
+	(concat "<" modifier multiple "wheel-" direction ">"))
+       'ignore
+       ) ) ) )
+
+
+;; Make [home] behave similar to Sublime
+;; @TODO [S-home] doesn't highlight from the current position to home
+(defun smart-beginning-of-line ()
+  "Move point to first non-whitespace character or beginning-of-line.
+
+Move point to the first non-whitespace character on this line.
+If point was already at that position, move point to beginning of line."
+  (interactive)
+  (let ((oldpos (point)))
+    (back-to-indentation)
+    (and (= oldpos (point))
+         (beginning-of-line))))
+(global-set-key [home] 'smart-beginning-of-line)
+(global-set-key "\C-a" 'smart-beginning-of-line)
+
+
+;; Set rulers at columns 72 and 80
+;; @TODO
+
+
+;; Display line numbers
+(when (version<= "26.0.50" emacs-version)
+  (global-display-line-numbers-mode))
+
+
+;; Make both the line and column appear
+(column-number-mode)
+
+
+;; Don't show the welcome screen
+(setq inhibit-startup-screen t)
+
+
+;; Hide the GUI toolbar
+(tool-bar-mode -1)
+
+
+;; [C-backspace] deletes a word or whitespace up to line start
+(defun line-up-to-point-is-blank ()
+  "Check if the line up to the current point matches /^[[:blank:]]*/"
+  (save-excursion
+    (let ((old-point (point))
+	  (old-mark (copy-marker (mark-marker))))
+      (set-mark old-point)
+      (beginning-of-line)
+      (let ((return (equal
+		     (re-search-forward "^[[:blank:]]*" (region-end) t)
+		     old-point)))
+	(deactivate-mark)
+	return))))
+
+(defun kill-whitespace-or-word ()
+  (interactive)
+  (if (line-up-to-point-is-blank)
+      (delete-indentation)
+    (backward-kill-word 1)))
+
+(global-set-key  [C-backspace]
+		 'kill-whitespace-or-word)
+
+
+;; Highlight enclosing brackets
+(ensure-package-installed 'highlight-parentheses)
+(require 'highlight-parentheses)
+(define-globalized-minor-mode global-highlight-parentheses-mode
+  highlight-parentheses-mode
+  (lambda nil (highlight-parentheses-mode t)))
+
+(setq highlight-parentheses-colors '(nil "tan2" "tan3" "tan4"))
+(setq highlight-parentheses-background-colors '("tan4", nil, nil, nil))
+(global-highlight-parentheses-mode t)
+
+
+;; Enable multiple cursors
+(ensure-package-installed 'multiple-cursors)
+(require 'multiple-cursors)
+
+(global-set-key (kbd "C-S-c C-S-c") 'mc/edit-lines)
+(global-set-key (kbd "C-d") 'mc/mark-next-like-this)
+(global-set-key (kbd "C-S-d") 'mc/mark-previous-like-this)
+(global-set-key (kbd "C-c C-d") 'mc/mark-all-like-this)
+
+
+;; Require a newline at the end of every buffer
+(setq-default require-final-newline t)
+
+
+;; Use a bar cursor
+(setq-default cursor-type 'bar)
+(set-cursor-color "#ffffff")
+
+
+;; Set up ElDoc
+(ensure-package-installed 'eldoc)
+(require 'eldoc)
+(if (version< "24.4.0" emacs-version)
+    (progn (add-hook 'emacs-lisp-mode-hook 'eldoc-mode)
+     (add-hook 'lisp-interaction-mode-hook 'eldoc-mode)
+     (add-hook 'ielm-mode-hook 'eldoc-mode))
+  (progn (add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
+   (add-hook 'lisp-interaction-mode-hook 'turn-on-eldoc-mode)
+   (add-hook 'ielm-mode-hook 'turn-on-eldoc-mode))
   )
 
-;; make the git dang text wrap nicely
-(global-visual-line-mode t)
 
-;; make sure to have downloaded archive description.
-;; Or use package-archive-contents as suggested by Nicolas Dudebout
-(or (file-exists-p package-user-dir)
-    (package-refresh-contents))
-
-(ensure-package-installed 'magit
-                          'color-theme
-                          'markdown-mode
-                          'clang-format) 
-
-;; activate installed packages
-(package-initialize)
-
-(setq ispell-program-name "/usr/local/bin/aspell")
-
-(setq-default c-default-style "stroustrup"
-              tab-stop 4
-              tab-width 4
-              innamespace 0
-              c-basic-offset 4)
-(c-set-offset 'innamespace 0)
-
-; style I want to use in c++ mode
-(c-add-style "conduce-cxx" 
-	     '("stroustrup"
-	       (indent-tabs-mode . nil)        ; use spaces rather than tabs
-	       (c-basic-offset . 4)            ; indent by four spaces
-               (tab-stop . 4)
-               (tab-width . 4)
-	       (c-offsets-alist . ((inline-open . 0)  ; custom indentation rules
-				   (brace-list-open . 0)
-                   (innamespace . 0)))))
-
-(defun conduce-c++-mode-hook ()
-  (c-set-style "conduce-cxx")        ; use my-style defined above
-  (auto-fill-mode))
-
-(autoload 'csharp-mode "csharp-mode" "Major mode for editing C# code." t)
-(setq auto-mode-alist
-      (append '(("\\.cs$" . csharp-mode)) auto-mode-alist))
-
-; CLI matlab from the shell:
-; /Applications/MATLAB_R2015b.app/bin/matlab -nodesktop
-;
-; elisp setup for matlab-mode:
-(setq matlab-shell-command "/Applications/MATLAB_R2015b.app/bin/matlab")
-(setq matlab-shell-command-switches (list "-nodesktop"))
-(autoload 'matlab-mode "matlab" "Matlab Editing Mode" t)
-(add-to-list
- 'auto-mode-alist
- '("\\.m$" . matlab-mode))
-(setq matlab-indent-function t)
-(setq matlab-shell-command "matlab")
-
-(add-hook 'c++-mode-hook 'conduce-c++-mode-hook)
-
-(add-to-list 'auto-mode-alist '("\\.h\\'" . c++-mode))
-
-(global-set-key [C-f] 'clang-format-region)
+;; Allow multicolumn
+(ensure-package-installed 'multicolumn)
+(require 'multicolumn)
+(multicolumn-global-mode 1)
+(setq multicolumn-resize-frome-default-width 85)
 
 
-(x-focus-frame nil)
+;; Set up a python environment
+(ensure-package-installed 'elpy)
+(require 'elpy)
+(elpy-enable)
+(setq elpy-rpc-virtualenv-path 'current)
+(add-hook 'elpy-mode-hook
+	  (lambda ()
+	    (add-hook 'before-save-hook
+		      'elpy-format-code nil t)))
 
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(custom-safe-themes
-   (quote
-    ("8db4b03b9ae654d4a57804286eb3e332725c84d7cdab38463cb6b97d5762ad26" default)))
- '(safe-local-variable-values (quote ((c-default-style . "linux") (tab-stop . 8)))))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
- 
+
+;; Set up a C/C++ environment
+;; clang-format
+(ensure-package-installed 'clang-format)
+(require 'clang-format)
+(setq clang-format-fallback-style "mozilla")
+(setq clang-format-style "file")
+(defun clang-format-save-hook ()
+  "Create a buffer-local save hook"
+  (add-hook 'before-save-hook
+	    (lambda ()
+	      (when (locate-dominating-file "." ".clang-format")
+		(clang-format-buffer))
+	      ;; Continue to save
+	      nil)
+	    nil
+	    ;; Buffer-local hook
+	    t))
+(add-hook 'c-mode-hook (lambda () (clang-format-save-hook)))
+(add-hook 'c++-mode-hook (lambda () (clang-format-save-hook)))
+
+;; ElDoc
+(ensure-package-installed 'c-eldoc)
+(require 'c-eldoc)
+(add-hook 'c-mode-hook 'c-turn-on-eldoc-mode)
+(add-hook 'c++-mode-hook 'c-turn-on-eldoc-mode)
+(defvar c-eldoc-includes
+  "`pkg-config gtk+-3.0 --cflags` \
+   -I./ \
+   -I../ \
+   ")
+
+
+;; GLSL
+;; glsl-mode
+(ensure-package-installed 'glsl-mode)
+(autoload 'glsl-mode "glsl-mode" nil t)
+(add-to-list 'auto-mode-alist '("\\.glsl\\'" . glsl-mode))
+(add-to-list 'auto-mode-alist '("\\.vert\\'" . glsl-mode))
+(add-to-list 'auto-mode-alist '("\\.frag\\'" . glsl-mode))
+(add-to-list 'auto-mode-alist '("\\.geom\\'" . glsl-mode))
+
+;; clang-format
+(add-hook 'glsl-mode-hook (lambda () (clang-format-save-hook)))
+
+
+;; Rust
+(ensure-package-installed 'rust-mode)
+(require 'rust-mode)
+
+;; Enforce spaces instead of tabs
+(add-hook 'rust-mode-hook (lambda () (setq indent-tabs-mode nil)))
+
+;; rustfmt
+(setq rust-format-on-save t)
+(add-hook 'rust-mode-hook (lambda () (prettify-symbols-mode)))
+
+;; key binds
+(define-key rust-mode-map (kbd "C-c C-c") 'rust-run)
+(define-key rust-mode-map (kbd "C-c C-l") 'rust-run-clippy)
+(define-key rust-mode-map (kbd "C-C C-t") 'rust-test)
