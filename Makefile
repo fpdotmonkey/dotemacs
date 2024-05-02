@@ -1,3 +1,3 @@
 .PHONY: install
 install:
-	cp ./.emacs ~/
+	ln --symbolic ./.emacs ~/.emacs

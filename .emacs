@@ -6,21 +6,19 @@
 (add-to-list 'package-archives '("elpa" . "https://elpa.gnu.org/packages/"))
 (package-initialize)
 
+;; for installing things if they haven't already
+(unless (package-installed-p 'use-package)
+  (package-install 'use-package)
+  )
 
-;; A helper function to install a package if it isn't already
-(defun ensure-package-installed (&rest packages)
-  "Assure every package is installed, ask for installation if it’s not.
-Return a list of installed packages or nil for every skipped package."
-  (mapcar
-   (lambda (package)
-     ;; (package-installed-p 'evil)
-     (if (package-installed-p package)
-         nil
-       (if (y-or-n-p (format "Package %s is missing. Install it? " package))
-	   (package-refresh-contents)
-           (package-install package)
-         package)))
-   packages))
+;; for installing from source
+(use-package "quelpa")
+
+
+;; Scimax
+(if (file-exists-p "~/.emacs.d/scimax/init.el")
+    (load "~/.emacs.d/scimax/init.el")
+  (message "install scimax with `bash -c \"$(curl -fsSL https://raw.githubusercontent.com/jkitchin/scimax/master/install-scimax-linux.sh)\"`"))
 
 
 ;; Define preferred color theme
@@ -28,11 +26,28 @@ Return a list of installed packages or nil for every skipped package."
 ;; adwaita 	deeper-blue 	dichromacy 	leuven		light-blue
 ;; manoj-dark	misterioso	tango		tango-dark 	tsdh-dark
 ;; sdh-light 	wheatgrass	whiteboard 	wombat
-(load-theme 'tsdh-dark)
+;;; setting the theme messes with org-mode stuff, will need to investigate
+;; (load-theme 'wombat)
+
+;; packages from git
+(quelpa
+ '(pdf-tools :location (recipe
+			:fetcher github
+			:repo "dalanicolai/pdf-tools"
+			:branch "pdf-roll"
+			:files ("lisp/*.el"
+				"README"
+				("build" "Makefile")
+				("build" "server")
+				(:exclude "lisp/tablist.el" "lisp/tablist-filter.el"))))
+ '(image-roll :location (recipe
+			 :fetcher github
+			 :repo "dalanicolai/image-roll.el"))
+ )
 
 
 ;; Highlight numeric literals
-(ensure-package-installed 'highlight-numbers)
+(use-package "highlight-numbers")
 (require 'highlight-numbers)
 (add-hook 'prog-mode-hook 'highlight-numbers-mode)
 
@@ -50,17 +65,17 @@ Return a list of installed packages or nil for every skipped package."
 
 
 ;; Make [home] behave similar to Sublime
-;; @TODO [S-home] doesn't highlight from the current position to home
 (defun smart-beginning-of-line ()
   "Move point to first non-whitespace character or beginning-of-line.
 
 Move point to the first non-whitespace character on this line.
 If point was already at that position, move point to beginning of line."
   (interactive)
+  (setq this-command-keys-shift-translated t)
   (let ((oldpos (point)))
-    (back-to-indentation)
+    (call-interactively 'back-to-indentation)
     (and (= oldpos (point))
-         (beginning-of-line))))
+         (call-interactively 'beginning-of-line))))
 (global-set-key [home] 'smart-beginning-of-line)
 (global-set-key "\C-a" 'smart-beginning-of-line)
 
@@ -111,7 +126,7 @@ If point was already at that position, move point to beginning of line."
 
 
 ;; Highlight enclosing brackets
-(ensure-package-installed 'highlight-parentheses)
+(use-package "highlight-parentheses")
 (require 'highlight-parentheses)
 (define-globalized-minor-mode global-highlight-parentheses-mode
   highlight-parentheses-mode
@@ -123,7 +138,7 @@ If point was already at that position, move point to beginning of line."
 
 
 ;; Enable multiple cursors
-(ensure-package-installed 'multiple-cursors)
+(use-package "multiple-cursors")
 (require 'multiple-cursors)
 
 (global-set-key (kbd "C-S-c C-S-c") 'mc/edit-lines)
@@ -142,27 +157,27 @@ If point was already at that position, move point to beginning of line."
 
 
 ;; Set up ElDoc
-(ensure-package-installed 'eldoc)
+(use-package "eldoc")
 (require 'eldoc)
 (if (version< "24.4.0" emacs-version)
     (progn (add-hook 'emacs-lisp-mode-hook 'eldoc-mode)
-     (add-hook 'lisp-interaction-mode-hook 'eldoc-mode)
-     (add-hook 'ielm-mode-hook 'eldoc-mode))
+	   (add-hook 'lisp-interaction-mode-hook 'eldoc-mode)
+	   (add-hook 'ielm-mode-hook 'eldoc-mode))
   (progn (add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
-   (add-hook 'lisp-interaction-mode-hook 'turn-on-eldoc-mode)
-   (add-hook 'ielm-mode-hook 'turn-on-eldoc-mode))
+	 (add-hook 'lisp-interaction-mode-hook 'turn-on-eldoc-mode)
+	 (add-hook 'ielm-mode-hook 'turn-on-eldoc-mode))
   )
 
 
-;; Allow multicolumn
-(ensure-package-installed 'multicolumn)
-(require 'multicolumn)
-(multicolumn-global-mode 1)
-(setq multicolumn-resize-frome-default-width 85)
+;; git
+(use-package "magit")
+(require 'magit)
+(use-package "git-modes")
+(require 'git-modes)
 
 
 ;; Set up a python environment
-(ensure-package-installed 'elpy)
+(use-package "elpy")
 (require 'elpy)
 (elpy-enable)
 (setq elpy-rpc-virtualenv-path 'current)
@@ -174,7 +189,7 @@ If point was already at that position, move point to beginning of line."
 
 ;; Set up a C/C++ environment
 ;; clang-format
-(ensure-package-installed 'clang-format)
+(use-package "clang-format")
 (require 'clang-format)
 (setq clang-format-fallback-style "mozilla")
 (setq clang-format-style "file")
@@ -193,7 +208,7 @@ If point was already at that position, move point to beginning of line."
 (add-hook 'c++-mode-hook (lambda () (clang-format-save-hook)))
 
 ;; ElDoc
-(ensure-package-installed 'c-eldoc)
+(use-package "c-eldoc")
 (require 'c-eldoc)
 (add-hook 'c-mode-hook 'c-turn-on-eldoc-mode)
 (add-hook 'c++-mode-hook 'c-turn-on-eldoc-mode)
@@ -206,7 +221,7 @@ If point was already at that position, move point to beginning of line."
 
 ;; GLSL
 ;; glsl-mode
-(ensure-package-installed 'glsl-mode)
+(use-package "glsl-mode")
 (autoload 'glsl-mode "glsl-mode" nil t)
 (add-to-list 'auto-mode-alist '("\\.glsl\\'" . glsl-mode))
 (add-to-list 'auto-mode-alist '("\\.vert\\'" . glsl-mode))
@@ -218,8 +233,9 @@ If point was already at that position, move point to beginning of line."
 
 
 ;; Rust
-(ensure-package-installed 'rust-mode)
+(use-package "rust-mode")
 (require 'rust-mode)
+(use-package "rustic")
 
 ;; Enforce spaces instead of tabs
 (add-hook 'rust-mode-hook (lambda () (setq indent-tabs-mode nil)))
@@ -228,7 +244,39 @@ If point was already at that position, move point to beginning of line."
 (setq rust-format-on-save t)
 (add-hook 'rust-mode-hook (lambda () (prettify-symbols-mode)))
 
+;; lsp
+(add-hook 'rust-mode-hook 'lsp-deferred)
+
 ;; key binds
 (define-key rust-mode-map (kbd "C-c C-c") 'rust-run)
 (define-key rust-mode-map (kbd "C-c C-l") 'rust-run-clippy)
 (define-key rust-mode-map (kbd "C-C C-t") 'rust-test)
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(org-babel-load-languages
+   '((emacs-lisp . t)
+     (latex . t)
+     (python . t)
+     (shell . t)
+     (matlab . t)
+     (sqlite . t)
+     (ruby . t)
+     (perl . t)
+     (org . t)
+     (dot . t)
+     (plantuml . t)
+     (R . t)
+     (fortran . t)
+     (C . t)))
+ '(package-selected-packages
+   '(glsl-mode rust-mode multiple-cursors multicolumn lsp-mode highlight-parentheses highlight-numbers elpy clang-format c-eldoc)))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
+(put 'upcase-region 'disabled nil)
