@@ -4,7 +4,6 @@
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
 (add-to-list 'package-archives '("elpa" . "https://elpa.gnu.org/packages/"))
-(package-initialize)
 
 ;; for installing things if they haven't already
 (unless (package-installed-p 'use-package)
@@ -12,13 +11,16 @@
   )
 
 ;; for installing from source
-(use-package "quelpa")
+(use-package "quelpa" :ensure t)
+(use-package quelpa-use-package
+  :ensure t
+  :config (quelpa-use-package-activate-advice))
 
 
 ;; Scimax
 (if (file-exists-p "~/.emacs.d/scimax/init.el")
     (load "~/.emacs.d/scimax/init.el")
-  (message "install scimax with `bash -c \"$(curl -fsSL https://raw.githubusercontent.com/jkitchin/scimax/master/install-scimax-linux.sh)\"`"))
+  (display-warning :warning (message "install scimax with `bash -c \"$(curl -fsSL https://raw.githubusercontent.com/jkitchin/scimax/master/install-scimax-linux.sh)\"`")))
 
 
 ;; Define preferred color theme
@@ -29,21 +31,100 @@
 ;;; setting the theme messes with org-mode stuff, will need to investigate
 ;; (load-theme 'wombat)
 
+
+;; fira code font
+(if (find-font (font-spec :name "Fira Code-11"))
+    (progn
+      (set-face-attribute 'default nil :font "Fira Code-11")
+      (set-frame-font "Fira Code-11" nil t))
+  (display-warning :warning (message "install Fira Code https://github.com/tonsky/FiraCode")))
+(use-package ligature
+  :config
+  ;; Enable the "www" ligature in every possible major mode
+  (ligature-set-ligatures 't '("www"))
+  ;; Enable traditional ligature support in eww-mode, if the
+  ;; `variable-pitch' face supports it
+  (ligature-set-ligatures 'eww-mode '("ff" "fi" "ffi"))
+  ;; Enable all Cascadia and Fira Code ligatures in programming modes
+  (ligature-set-ligatures 'prog-mode
+                          '(;; == === ==== => =| =>>=>=|=>==>> ==< =/=//=// =~
+                            ;; =:= =!=
+                            ("=" (rx (+ (or ">" "<" "|" "/" "~" ":" "!" "="))))
+                            ;; ;; ;;;
+                            (";" (rx (+ ";")))
+                            ;; && &&&
+                            ("&" (rx (+ "&")))
+                            ;; !! !!! !. !: !!. != !== !~
+                            ("!" (rx (+ (or "=" "!" "\." ":" "~"))))
+                            ;; ?? ??? ?:  ?=  ?.
+                            ("?" (rx (or ":" "=" "\." (+ "?"))))
+                            ;; %% %%%
+                            ("%" (rx (+ "%")))
+                            ;; |> ||> |||> ||||> |] |} || ||| |-> ||-||
+                            ;; |->>-||-<<-| |- |== ||=||
+                            ;; |==>>==<<==<=>==//==/=!==:===>
+                            ("|" (rx (+ (or ">" "<" "|" "/" ":" "!" "}" "\]"
+                                            "-" "=" ))))
+                            ;; \\ \\\ \/
+                            ("\\" (rx (or "/" (+ "\\"))))
+                            ;; ++ +++ ++++ +>
+                            ("+" (rx (or ">" (+ "+"))))
+                            ;; :: ::: :::: :> :< := :// ::=
+                            (":" (rx (or ">" "<" "=" "//" ":=" (+ ":"))))
+                            ;; // /// //// /\ /* /> /===:===!=//===>>==>==/
+                            ("/" (rx (+ (or ">"  "<" "|" "/" "\\" "\*" ":" "!" "="))))
+                            ;; .. ... .... .= .- .? ..= ..<
+                            ("\." (rx (or "=" "-" "\?" "\.=" "\.<" (+ "\."))))
+                            ;; -- --- ---- -~ -> ->> -| -|->-->>->--<<-|
+                            ("-" (rx (+ (or ">" "<" "|" "~" "-"))))
+                            ;; *> */ *)  ** *** ****
+                            ("*" (rx (or ">" "/" ")" (+ "*"))))
+                            ;; www wwww
+                            ("w" (rx (+ "w")))
+                            ;; <> <!-- <|> <: <~ <~> <~~ <+ <* <$ </  <+> <*>
+                            ;; <$> </> <|  <||  <||| <|||| <- <-| <-<<-|-> <->>
+                            ;; <<-> <= <=> <<==<<==>=|=>==/==//=!==:=>
+                            ;; << <<< <<<<
+                            ("<" (rx (+ (or "\+" "\*" "\$" "<" ">" ":" "~"  "!"
+                                            "-"  "/" "|" "="))))
+                            ;; >: >- >>- >--|-> >>-|-> >= >== >>== >=|=:=>>
+                            ;; >> >>> >>>>
+                            (">" (rx (+ (or ">" "<" "|" "/" ":" "=" "-"))))
+                            ;; #: #= #! #( #? #[ #{ #_ #_( ## ### #####
+                            ("#" (rx (or ":" "=" "!" "(" "\?" "\[" "{" "_(" "_"
+					 (+ "#"))))
+                            ;; ~~ ~~~ ~=  ~-  ~@ ~> ~~>
+                            ("~" (rx (or ">" "=" "-" "@" "~>" (+ "~"))))
+                            ;; __ ___ ____ _|_ __|____|_
+                            ("_" (rx (+ (or "_" "|"))))
+                            ;; Fira code: 0xFF 0x12
+                            ("0" (rx (and "x" (+ (in "A-F" "a-f" "0-9")))))
+                            ;; Fira code:
+                            "Fl"  "Tl"  "fi"  "fj"  "fl"  "ft"
+                            ;; The few not covered by the regexps.
+                            "{|"  "[|"  "]#"  "(*"  "}#"  "$>"  "^="))
+  ;; Enables ligature checks globally in all buffers. You can also do it
+  ;; per mode with `ligature-mode'.
+  (global-ligature-mode t))
+
+
 ;; packages from git
-(quelpa
- '(pdf-tools :location (recipe
-			:fetcher github
-			:repo "dalanicolai/pdf-tools"
-			:branch "pdf-roll"
-			:files ("lisp/*.el"
-				"README"
-				("build" "Makefile")
-				("build" "server")
-				(:exclude "lisp/tablist.el" "lisp/tablist-filter.el"))))
- '(image-roll :location (recipe
-			 :fetcher github
-			 :repo "dalanicolai/image-roll.el"))
- )
+(use-package image-roll
+  :quelpa (image-roll
+	   :fetcher github
+	   :repo "dalanicolai/image-roll.el"))
+(use-package pdf-tools
+  :quelpa (pdf-tools
+	   :fetcher github
+	   :repo "dalanicolai/pdf-tools"
+	   :branch "pdf-roll"
+	   :files ("lisp/*.el"
+		   "README"
+		   ("build" "Makefile")
+		   ("build" "server")
+		   (:exclude "lisp/tablist.el" "lisp/tablist-filter.el"))))
+
+(use-package epc)
 
 
 ;; Highlight numeric literals
@@ -69,14 +150,24 @@
   "Move point to first non-whitespace character or beginning-of-line.
 
 Move point to the first non-whitespace character on this line.
-If point was already at that position, move point to beginning of line."
+If point was already at that position, move point to beginning of line.
+
+On visually wrapped lines, move the point first to the beginning of the visual line, and on next invocation to the indentation."
+  (interactive)
+  (let ((oldpos (point)))
+    (if (< (window-total-width) (current-column))
+	(progn (call-interactively 'beginning-of-visual-line)
+	       (and (= oldpos (point))
+		    (call-interactively 'back-to-indentation)))
+      (call-interactively 'back-to-indentation)
+      (and (= oldpos (point))
+	   (call-interactively 'beginning-of-line)))))
+(defun shift-smart-beginning-of-line ()
   (interactive)
   (setq this-command-keys-shift-translated t)
-  (let ((oldpos (point)))
-    (call-interactively 'back-to-indentation)
-    (and (= oldpos (point))
-         (call-interactively 'beginning-of-line))))
+  (smart-beginning-of-line))
 (global-set-key [home] 'smart-beginning-of-line)
+(global-set-key (kbd "S-<home>") 'shift-smart-beginning-of-line)
 (global-set-key "\C-a" 'smart-beginning-of-line)
 
 
@@ -251,6 +342,12 @@ If point was already at that position, move point to beginning of line."
 (define-key rust-mode-map (kbd "C-c C-c") 'rust-run)
 (define-key rust-mode-map (kbd "C-c C-l") 'rust-run-clippy)
 (define-key rust-mode-map (kbd "C-C C-t") 'rust-test)
+
+
+;; haskell
+(use-package haskell-mode)
+
+;; org-mode stuff
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
