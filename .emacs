@@ -21,6 +21,8 @@
 (if (file-exists-p "~/.emacs.d/scimax/init.el")
     (load "~/.emacs.d/scimax/init.el")
   (display-warning :warning (message "install scimax with `bash -c \"$(curl -fsSL https://raw.githubusercontent.com/jkitchin/scimax/master/install-scimax-linux.sh)\"`")))
+(setq scimax-dir "~/.emacs.d/scimax")
+(add-to-list 'load-path "~/.emacs.d/scimax")
 
 
 ;; Define preferred color theme
@@ -40,8 +42,8 @@
   (display-warning :warning (message "install Fira Code https://github.com/tonsky/FiraCode")))
 (use-package ligature
   :config
-  ;; Enable the "www" ligature in every possible major mode
-  (ligature-set-ligatures 't '("www"))
+  ;; Enable in every major mode
+  (ligature-set-ligatures 't '("www" "Fl"  "Tl"  "fi"  "fj"  "fl"  "ft"))
   ;; Enable traditional ligature support in eww-mode, if the
   ;; `variable-pitch' face supports it
   (ligature-set-ligatures 'eww-mode '("ff" "fi" "ffi"))
@@ -67,18 +69,18 @@
                                             "-" "=" ))))
                             ;; \\ \\\ \/
                             ("\\" (rx (or "/" (+ "\\"))))
-                            ;; ++ +++ ++++ +>
-                            ("+" (rx (or ">" (+ "+"))))
-                            ;; :: ::: :::: :> :< := :// ::=
-                            (":" (rx (or ">" "<" "=" "//" ":=" (+ ":"))))
+                            ;; ++ +++ ++++ +> +a +A
+                            ("+" (rx (or ">" (+ "+") (in "alpha"))))
+                            ;; :: ::: :::: :> :< := :// ::= :a :A
+                            (":" (rx (or ">" "<" "=" "//" ":=" (+ ":") (in "alpha"))))
                             ;; // /// //// /\ /* /> /===:===!=//===>>==>==/
                             ("/" (rx (+ (or ">"  "<" "|" "/" "\\" "\*" ":" "!" "="))))
                             ;; .. ... .... .= .- .? ..= ..<
                             ("\." (rx (or "=" "-" "\?" "\.=" "\.<" (+ "\."))))
-                            ;; -- --- ---- -~ -> ->> -| -|->-->>->--<<-|
-                            ("-" (rx (+ (or ">" "<" "|" "~" "-"))))
-                            ;; *> */ *)  ** *** ****
-                            ("*" (rx (or ">" "/" ")" (+ "*"))))
+                            ;; -- --- ---- -~ -> ->> -| -|->-<->>-<<-| -a -O
+                            ("-" (rx (or (+ (or ">" "<" "|" "~" "-")) (in "alpha"))))
+                            ;; *> */ *)  ** *** **** *a *A
+                            ("*" (rx (or ">" "/" ")" (+ "*") (in "alpha"))))
                             ;; www wwww
                             ("w" (rx (+ "w")))
                             ;; <> <!-- <|> <: <~ <~> <~~ <+ <* <$ </  <+> <*>
@@ -99,10 +101,12 @@
                             ("_" (rx (+ (or "_" "|"))))
                             ;; Fira code: 0xFF 0x12
                             ("0" (rx (and "x" (+ (in "A-F" "a-f" "0-9")))))
-                            ;; Fira code:
-                            "Fl"  "Tl"  "fi"  "fj"  "fl"  "ft"
                             ;; The few not covered by the regexps.
                             "{|"  "[|"  "]#"  "(*"  "}#"  "$>"  "^="))
+  (ligature-set-ligatures 'text-mode
+			  '(
+			    ("<" (rx (+ (or "\+" "\*" "\$" "<" ">" ":" "~"  "!" "-"  "/" "|" "="))))
+			    ("-" (rx (or (+ (or ">" "<" "|" "~" "-")) (in "alpha"))))))
   ;; Enables ligature checks globally in all buffers. You can also do it
   ;; per mode with `ligature-mode'.
   (global-ligature-mode t))
@@ -134,15 +138,17 @@
 
 
 ;; Make mouse scrolling less jerky
-(setq mouse-wheel-scroll-amount '(1))
-(dolist (modifier '("" "S-" "C-" "M-"))
-  (dolist (multiple '("" "double-" "triple-"))
-    (dolist (direction '("right" "left"))
-      (global-set-key
-       (read-kbd-macro
-	(concat "<" modifier multiple "wheel-" direction ">"))
-       'ignore
-       ) ) ) )
+(if (version<= "29.0.0" emacs-version)
+    (progn (pixel-scroll-precision-mode)
+	   (setq pixel-scroll-precision-large-scroll-height 35.0))
+  (setq mouse-wheel-scroll-amount '(1))
+  (dolist (modifier '("" "S-" "C-" "M-"))
+    (dolist (multiple '("" "double-" "triple-"))
+      (dolist (direction '("right" "left"))
+	(global-set-key
+	 (read-kbd-macro
+	  (concat "<" modifier multiple "wheel-" direction ">"))
+	 'ignore)))))
 
 
 ;; Make [home] behave similar to Sublime
@@ -155,7 +161,7 @@ If point was already at that position, move point to beginning of line.
 On visually wrapped lines, move the point first to the beginning of the visual line, and on next invocation to the indentation."
   (interactive)
   (let ((oldpos (point)))
-    (if (< (window-total-width) (current-column))
+    (if (< (window-max-chars-per-line) (current-column))
 	(progn (call-interactively 'beginning-of-visual-line)
 	       (and (= oldpos (point))
 		    (call-interactively 'back-to-indentation)))
@@ -170,6 +176,15 @@ On visually wrapped lines, move the point first to the beginning of the visual l
 (global-set-key (kbd "S-<home>") 'shift-smart-beginning-of-line)
 (global-set-key "\C-a" 'smart-beginning-of-line)
 
+(defun smart-end-of-line ()
+  "Move point to the end of the visual line or the end of the line"
+  (interactive)
+  (let ((oldpos (point)))
+    (call-interactively 'end-of-visual-line)
+    (and (= oldpos (point))
+	 (call-interactively 'end-of-line))))
+(global-set-key (kbd "<end>") 'smart-end-of-line)
+
 
 ;; Set rulers at columns 72 and 80
 ;; @TODO
@@ -177,7 +192,8 @@ On visually wrapped lines, move the point first to the beginning of the visual l
 
 ;; Display line numbers
 (when (version<= "26.0.50" emacs-version)
-  (global-display-line-numbers-mode))
+  (add-hook 'prog-mode-hook #'display-line-numbers-mode)
+  (add-hook 'text-mode-hook #'display-line-numbers-mode))
 
 
 ;; Make both the line and column appear
@@ -267,15 +283,13 @@ On visually wrapped lines, move the point first to the beginning of the visual l
 (require 'git-modes)
 
 
-;; Set up a python environment
-(use-package "elpy")
-(require 'elpy)
-(elpy-enable)
-(setq elpy-rpc-virtualenv-path 'current)
-(add-hook 'elpy-mode-hook
-	  (lambda ()
-	    (add-hook 'before-save-hook
-		      'elpy-format-code nil t)))
+;; python
+(use-package pyvenv :ensure t)
+(use-package python-black
+  :demand t
+  :after python
+  :hook (python-mode . python-black-on-save-mode))
+(setq python-black-extra-args 79)
 
 
 ;; Set up a C/C++ environment
@@ -333,7 +347,6 @@ On visually wrapped lines, move the point first to the beginning of the visual l
 
 ;; rustfmt
 (setq rust-format-on-save t)
-(add-hook 'rust-mode-hook (lambda () (prettify-symbols-mode)))
 
 ;; lsp
 (add-hook 'rust-mode-hook 'lsp-deferred)
@@ -346,6 +359,70 @@ On visually wrapped lines, move the point first to the beginning of the visual l
 
 ;; haskell
 (use-package haskell-mode)
+
+
+;; Golang
+(use-package go-mode)
+
+
+;; better HTML
+(use-package web-mode)
+(add-to-list 'auto-mode-alist '("\\.phtml\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.tpl\\.php\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.[agj]sp\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.as[cp]x\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.erb\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.mustache\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.djhtml\\'" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
+
+
+;; org-mode x hugo
+(use-package ox-hugo :ensure t :after ox)
+
+
+;; org-link youtube
+(org-link-set-parameters "yt"
+			 :follow #'org-yt-follow
+			 :export #'org-yt-export)
+
+(defun org-yt-follow (video arg)
+  "Open the YouTube video in a browser"
+  (browse-url (format "https://youtu.be/%s" video) arg))
+
+(defun org-yt-export (video description format _)
+  "Export a YouTube video link from Org Files."
+  (pcase format
+    ;; www-flavored
+    (`html (format yt-iframe-format video (or description "")))
+    (`md (format yt-iframe-format video (or description "")))
+    ;; TeX-flavored
+    (`latex (format "\\href{%s}{%s}" video (or description video)))
+    (`texinfo (format "@uref{%s,%s}" video (or description video)))
+    ;; Text-flavored
+    (t (format "%s (http://youtu.be/%s)" description video))))
+
+(defvar yt-iframe-format
+  ;; You may want to change your width and height.
+  (concat "<iframe"
+	  " width=560 height=315"
+          " src=\"https://www.youtube.com/embed/%s\""
+          " frameborder=\"0\""
+          " allowfullscreen>%s</iframe>"))
+
+
+;; org-link image
+(org-link-set-parameters "img"
+			 :follow #'org-link-open-as-file
+			 :export #'org-image-export)
+
+(defun org-image-export (path description format _)
+  "Export images including 3rd party-hosted ones"
+  (pcase format
+    (`html (format "<img src=\"%s\">" path))
+    (`md (format "<img src=\"%s\">" path))
+    ))
+
 
 ;; org-mode stuff
 (custom-set-variables
