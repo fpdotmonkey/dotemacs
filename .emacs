@@ -17,23 +17,6 @@
   :config (quelpa-use-package-activate-advice))
 
 
-;; Scimax
-(if (file-exists-p "~/.emacs.d/scimax/init.el")
-    (load "~/.emacs.d/scimax/init.el")
-  (display-warning :warning (message "install scimax with `bash -c \"$(curl -fsSL https://raw.githubusercontent.com/jkitchin/scimax/master/install-scimax-linux.sh)\"`")))
-(setq scimax-dir "~/.emacs.d/scimax")
-(add-to-list 'load-path "~/.emacs.d/scimax")
-
-
-;; Define preferred color theme
-;; Possible options:
-;; adwaita 	deeper-blue 	dichromacy 	leuven		light-blue
-;; manoj-dark	misterioso	tango		tango-dark 	tsdh-dark
-;; sdh-light 	wheatgrass	whiteboard 	wombat
-;;; setting the theme messes with org-mode stuff, will need to investigate
-;; (load-theme 'wombat)
-
-
 ;; fira code font
 (if (find-font (font-spec :name "Fira Code-11"))
     (progn
@@ -110,6 +93,23 @@
   ;; Enables ligature checks globally in all buffers. You can also do it
   ;; per mode with `ligature-mode'.
   (global-ligature-mode t))
+
+
+;; Scimax
+(if (file-exists-p "~/.emacs.d/scimax/init.el")
+    (load "~/.emacs.d/scimax/init.el")
+  (display-warning :warning (message "install scimax with `bash -c \"$(curl -fsSL https://raw.githubusercontent.com/jkitchin/scimax/master/install-scimax-linux.sh)\"`")))
+(setq scimax-dir "~/.emacs.d/scimax")
+(add-to-list 'load-path "~/.emacs.d/scimax")
+
+
+;; Define preferred color theme
+;; Possible options:
+;; adwaita 	deeper-blue 	dichromacy 	leuven		light-blue
+;; manoj-dark	misterioso	tango		tango-dark 	tsdh-dark
+;; sdh-light 	wheatgrass	whiteboard 	wombat
+;;; setting the theme messes with org-mode stuff, will need to investigate
+;; (load-theme 'wombat)
 
 
 ;; packages from git
