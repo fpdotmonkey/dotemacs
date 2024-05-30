@@ -131,6 +131,11 @@
 (use-package epc)
 
 
+;; Prevent counsel-find-file from finding annoying files
+(setq counsel-find-file-ignore-regexp
+      (rx (or ".~undo-tree~")))
+
+
 ;; Highlight numeric literals
 (use-package "highlight-numbers")
 (require 'highlight-numbers)
