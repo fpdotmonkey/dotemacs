@@ -1,6 +1,13 @@
 ;; -*- Emacs-Lisp -*- ~*~ UTF-8 ~*~
 
 ;; Allow custom packages to be installed
+
+;; Added by Package.el.  This must come before configurations of
+;; installed packages.  Don't delete this line.  If you don't want it,
+;; just comment it out by adding a semicolon to the start of the line.
+;; You may delete these explanatory comments.
+(package-initialize)
+
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
 (add-to-list 'package-archives '("elpa" . "https://elpa.gnu.org/packages/"))
@@ -20,7 +27,13 @@
 ;; Scimax
 (if (file-exists-p "~/.emacs.d/scimax/init.el")
     (load "~/.emacs.d/scimax/init.el")
-  (display-warning :warning (message "install scimax with `bash -c \"$(curl -fsSL https://raw.githubusercontent.com/jkitchin/scimax/master/install-scimax-linux.sh)\"`")))
+  (display-warning :warning
+		   (message
+		    (pcase system-type
+		      ('gnu/linux "install scimax with `bash -c \"$(curl -fsSL https://raw.githubusercontent.com/jkitchin/scimax/master/install-scimax-linux.sh)\"`")
+		      ((or 'ms-dos 'windows-nt 'cygwin) "install scimax with `bash -c \"$(curl -fsSL https://raw.githubusercontent.com/jkitchin/scimax/master/install-scimax-win.sh)\"`")
+		      ('darwin "install scimax with `brew install scimax`")
+		      (_ "install scimax from https://github.com/jkitchin/scimax")))))
 (setq scimax-dir "~/.emacs.d/scimax")
 (add-to-list 'load-path "~/.emacs.d/scimax")
 
@@ -128,12 +141,11 @@
 		   ("build" "server")
 		   (:exclude "lisp/tablist.el" "lisp/tablist-filter.el"))))
 
-(use-package epc)
+(use-package epc :ensure t)
 
 
 ;; Highlight numeric literals
-(use-package "highlight-numbers")
-(require 'highlight-numbers)
+(use-package highlight-numbers :ensure t)
 (add-hook 'prog-mode-hook 'highlight-numbers-mode)
 
 
@@ -233,20 +245,18 @@ On visually wrapped lines, move the point first to the beginning of the visual l
 
 
 ;; Highlight enclosing brackets
-(use-package "highlight-parentheses")
-(require 'highlight-parentheses)
+(use-package highlight-parentheses :ensure t)
 (define-globalized-minor-mode global-highlight-parentheses-mode
   highlight-parentheses-mode
   (lambda nil (highlight-parentheses-mode t)))
 
-(setq highlight-parentheses-colors '(nil "tan2" "tan3" "tan4"))
+(setq highlight-parentheses-colors '("white" "tan2" "tan3" "tan4"))
 (setq highlight-parentheses-background-colors '("tan4", nil, nil, nil))
 (global-highlight-parentheses-mode t)
 
 
 ;; Enable multiple cursors
-(use-package "multiple-cursors")
-(require 'multiple-cursors)
+(use-package multiple-cursors :ensure t)
 
 (global-set-key (kbd "C-S-c C-S-c") 'mc/edit-lines)
 (global-set-key (kbd "C-d") 'mc/mark-next-like-this)
@@ -264,8 +274,7 @@ On visually wrapped lines, move the point first to the beginning of the visual l
 
 
 ;; Set up ElDoc
-(use-package "eldoc")
-(require 'eldoc)
+(use-package eldoc :ensure t)
 (if (version< "24.4.0" emacs-version)
     (progn (add-hook 'emacs-lisp-mode-hook 'eldoc-mode)
 	   (add-hook 'lisp-interaction-mode-hook 'eldoc-mode)
@@ -277,10 +286,8 @@ On visually wrapped lines, move the point first to the beginning of the visual l
 
 
 ;; git
-(use-package "magit")
-(require 'magit)
-(use-package "git-modes")
-(require 'git-modes)
+(use-package magit :ensure t)
+(use-package git-modes :ensure t)
 
 
 ;; python
@@ -294,8 +301,7 @@ On visually wrapped lines, move the point first to the beginning of the visual l
 
 ;; Set up a C/C++ environment
 ;; clang-format
-(use-package "clang-format")
-(require 'clang-format)
+(use-package clang-format :ensure t)
 (setq clang-format-fallback-style "mozilla")
 (setq clang-format-style "file")
 (defun clang-format-save-hook ()
@@ -313,8 +319,7 @@ On visually wrapped lines, move the point first to the beginning of the visual l
 (add-hook 'c++-mode-hook (lambda () (clang-format-save-hook)))
 
 ;; ElDoc
-(use-package "c-eldoc")
-(require 'c-eldoc)
+(use-package c-eldoc :ensure t)
 (add-hook 'c-mode-hook 'c-turn-on-eldoc-mode)
 (add-hook 'c++-mode-hook 'c-turn-on-eldoc-mode)
 (defvar c-eldoc-includes
@@ -326,7 +331,7 @@ On visually wrapped lines, move the point first to the beginning of the visual l
 
 ;; GLSL
 ;; glsl-mode
-(use-package "glsl-mode")
+(use-package glsl-mode :ensure t)
 (autoload 'glsl-mode "glsl-mode" nil t)
 (add-to-list 'auto-mode-alist '("\\.glsl\\'" . glsl-mode))
 (add-to-list 'auto-mode-alist '("\\.vert\\'" . glsl-mode))
@@ -338,9 +343,7 @@ On visually wrapped lines, move the point first to the beginning of the visual l
 
 
 ;; Rust
-(use-package "rust-mode")
-(require 'rust-mode)
-(use-package "rustic")
+(use-package rustic :ensure t)
 
 ;; Enforce spaces instead of tabs
 (add-hook 'rust-mode-hook (lambda () (setq indent-tabs-mode nil)))
@@ -358,15 +361,15 @@ On visually wrapped lines, move the point first to the beginning of the visual l
 
 
 ;; haskell
-(use-package haskell-mode)
+(use-package haskell-mode :ensure t)
 
 
 ;; Golang
-(use-package go-mode)
+(use-package go-mode :ensure t)
 
 
 ;; better HTML
-(use-package web-mode)
+(use-package web-mode :ensure t)
 (add-to-list 'auto-mode-alist '("\\.phtml\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.tpl\\.php\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.[agj]sp\\'" . web-mode))
@@ -375,6 +378,10 @@ On visually wrapped lines, move the point first to the beginning of the visual l
 (add-to-list 'auto-mode-alist '("\\.mustache\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.djhtml\\'" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
+
+
+;; protobufs
+(use-package protobuf-mode :ensure t)
 
 
 ;; org-mode x hugo
