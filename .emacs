@@ -64,8 +64,8 @@
                             ("-" (rx (or (+ (or ">" "<" "|" "~" "-")) (in "alpha"))))
                             ;; *> */ *)  ** *** **** *a *A
                             ("*" (rx (or ">" "/" ")" (+ "*") (in "alpha"))))
-                            ;; www wwww
-                            ("w" (rx (+ "w")))
+                            ;; www.
+                            ("w" (rx "ww"))
                             ;; <> <!-- <|> <: <~ <~> <~~ <+ <* <$ </  <+> <*>
                             ;; <$> </> <|  <||  <||| <|||| <- <-| <-<<-|-> <->>
                             ;; <<-> <= <=> <<==<<==>=|=>==/==//=!==:=>
@@ -73,8 +73,11 @@
                             ("<" (rx (+ (or "\+" "\*" "\$" "<" ">" ":" "~"  "!"
                                             "-"  "/" "|" "="))))
                             ;; >: >- >>- >--|-> >>-|-> >= >== >>== >=|=:=>>
-                            ;; >> >>> >>>>
-                            (">" (rx (+ (or ">" "<" "|" "/" ":" "=" "-"))))
+                            ;; >> >>> >>>> f::<T>::G h::<T>()
+                            (">" (rx
+				  (or
+				   (or (>= 3 ":") (and ":" (not ":")) (and ":" eol))
+				   (+ (or ">" "<" "|" "/" "=" "-")))))
                             ;; #: #= #! #( #? #[ #{ #_ #_( ## ### #####
                             ("#" (rx (or ":" "=" "!" "(" "\?" "\[" "{" "_(" "_"
 					 (+ "#"))))
@@ -102,6 +105,11 @@
 (setq scimax-dir "~/.emacs.d/scimax")
 (add-to-list 'load-path "~/.emacs.d/scimax")
 
+(setq org-src-block-faces
+      '(("emacs-lisp" (:extend t))
+	("sh" (:extend t))
+	("python" (:extend t))))
+
 
 ;; Define preferred color theme
 ;; Possible options:
@@ -109,7 +117,8 @@
 ;; manoj-dark	misterioso	tango		tango-dark 	tsdh-dark
 ;; sdh-light 	wheatgrass	whiteboard 	wombat
 ;;; setting the theme messes with org-mode stuff, will need to investigate
-;; (load-theme 'wombat)
+(setq dark-theme nil)
+(load-theme 'dichromacy)
 
 
 ;; packages from git
@@ -289,7 +298,7 @@ On visually wrapped lines, move the point first to the beginning of the visual l
   :demand t
   :after python
   :hook (python-mode . python-black-on-save-mode))
-(setq python-black-extra-args 79)
+(setq python-black-extra-args '("--line-length" "79"))
 
 
 ;; Set up a C/C++ environment
@@ -338,23 +347,12 @@ On visually wrapped lines, move the point first to the beginning of the visual l
 
 
 ;; Rust
-(use-package "rust-mode")
-(require 'rust-mode)
-(use-package "rustic")
-
-;; Enforce spaces instead of tabs
-(add-hook 'rust-mode-hook (lambda () (setq indent-tabs-mode nil)))
+(use-package rustic)
 
 ;; rustfmt
-(setq rust-format-on-save t)
+(setq rustic-format-trigger 'on-save)
 
-;; lsp
-(add-hook 'rust-mode-hook 'lsp-deferred)
-
-;; key binds
-(define-key rust-mode-map (kbd "C-c C-c") 'rust-run)
-(define-key rust-mode-map (kbd "C-c C-l") 'rust-run-clippy)
-(define-key rust-mode-map (kbd "C-C C-t") 'rust-test)
+(use-package rmsbolt)
 
 
 ;; haskell
@@ -430,23 +428,11 @@ On visually wrapped lines, move the point first to the beginning of the visual l
           " allowfullscreen>%s</iframe>"))
 
 
-;; org-link image
-(org-link-set-parameters "img"
-			 :follow #'org-link-open-as-file
-			 :export #'org-image-export)
-
-(defun org-image-export (path description format _)
-  "Export images including 3rd party-hosted ones"
-  (pcase format
-    (`html (format "<img src=\"%s\">" path))
-    (`md (format "<img src=\"%s\">" path))
-    ))
-
-
 ;; org-mode stuff
-(use-package org-inline-pdf)
-(add-hook 'org-mode-hook #'org-inline-pdf-mode)
-(setq org-babel-inline-result-wrap "%s")
+(use-package "org-bullets")
+(add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
+
+(setq org-default-notes-file (concat org-directory "~/notes.org"))
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
