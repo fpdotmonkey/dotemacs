@@ -111,13 +111,13 @@ def main():
         print("committing changes")
         subprocess.run(["git", "add", "."])
         subprocess.run(["git", "commit", "-m", commit_message()])
-    if mergable_on_master():
+    if mergeable_on_master():
         print("merging master into " + current_branch())
         if not merge("master"):
             notify_merge_conflict(current_branch(), "master")
             return
     subprocess.run(["git", "push", "origin", "HEAD"])
-    if mergable_on_branch():
+    if mergeable_on_branch():
         print("merging " + current_branch() + " into " + branch_name())
         if subprocess.run(["git", "checkout", "master"]).returncode != 0:
             notify_failed_checkout("master")
