@@ -40,7 +40,7 @@ def mergeable_on_master():
     git_log = subprocess.run(
         ["git", "log", "master", "^" + branch_name(), "--oneline"],
         capture_output=True,
-    )
+    ).stdout
     return len(git_log.strip()) > 0
 
 
@@ -48,7 +48,7 @@ def mergeable_on_branch():
     git_log = subprocess.run(
         ["git", "log", branch_name(), "^master", "--oneline"],
         capture_output=True,
-    )
+    ).stdout
     return len(git_log.strip()) > 0
 
 
