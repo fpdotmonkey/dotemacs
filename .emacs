@@ -377,6 +377,25 @@ On visually wrapped lines, move the point first to the beginning of the visual l
 (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
 
 
+;; LaTeX and Tectonic
+(setq
+ org-latex-pdf-process
+ '("tectonic -X compile --outdir=%o -Z shell-escape -Z continue-on-errors %f"))
+(add-to-list 'org-preview-latex-process-alist
+	     '(tectonic :programs ("tectonic" "convert") 
+			:description "pdf > png"
+			:message "you need install the programs: tectonic and imagemagick."
+			:image-input-type "pdf" 
+			:image-output-type "png"
+			:image-size-adjust (2 . 2) 
+			:latex-compiler
+			("tectonic -Z shell-escape-cwd=%o --outfmt pdf --outdir %o %f")
+			:image-converter
+			("magick convert -density %D -trim -antialias %f -quality 300 %O")))
+(setq org-preview-latex-default-process 'tectonic)
+(setq org-latex-title-command "\\maketitle")
+
+
 ;; org-mode x hugo
 (use-package ox-hugo :ensure t :after ox)
 
@@ -425,6 +444,10 @@ On visually wrapped lines, move the point first to the beginning of the visual l
 
 
 ;; org-mode stuff
+(use-package org-inline-pdf)
+(add-hook 'org-mode-hook #'org-inline-pdf-mode)
+(setq org-babel-inline-result-wrap "%s")
+
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
