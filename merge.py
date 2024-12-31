@@ -23,7 +23,7 @@ def current_branch():
         subprocess.run(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True
         ).stdout
-    )
+    ).strip()
 
 
 def commit_message():
