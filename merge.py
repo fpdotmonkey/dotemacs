@@ -19,9 +19,11 @@ def branch_name():
 
 
 def current_branch():
-    return subprocess.run(
-        ["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True
-    ).stdout
+    return str(
+        subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True
+        ).stdout
+    )
 
 
 def commit_message():
