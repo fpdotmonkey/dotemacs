@@ -126,6 +126,8 @@ def main():
             return
         if not merge(branch_name()):
             notify_merge_conflict(current_branch(), branch_name())
+    if subprocess.run(["git", "checkout", "-B", branch_name()]).returncode != 0:
+        notify_failed_checkout(branch_name())
 
 
 if __name__ == "__main__":
