@@ -105,8 +105,15 @@ def notify_failed_checkout(branch):
 
 def main():
     if (
-        current_branch() != branch_name()
-        and subprocess.run(["git", "checkout", "-B", branch_name()]).returncode
+        subprocess.run(["git", "checkout", "master"]).returncode
+        != 0
+    ):
+        notify_failed_checkout("master")
+        return
+    print("pull latest master")
+    subprocess.run(["git", "pull", "origin", "HEAD"])
+    if (
+        subprocess.run(["git", "checkout", "-B", branch_name()]).returncode
         != 0
     ):
         notify_failed_checkout(branch_name())
@@ -120,7 +127,7 @@ def main():
         if not merge("master"):
             notify_merge_conflict(current_branch(), "master")
             return
-    subprocess.run(["git", "push", "origin", "HEAD"])
+    subprocess.run(["git", "push", "origin", "master", branch_name()])
     if mergeable_on_branch():
         print("merging " + current_branch() + " into " + branch_name())
         if subprocess.run(["git", "checkout", "master"]).returncode != 0:
