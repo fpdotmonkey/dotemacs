@@ -434,6 +434,8 @@ On visually wrapped lines, move the point first to the beginning of the visual l
 
 (setq org-default-notes-file (concat org-directory "~/notes.org"))
 
+(add-to-list 'org-agenda-files "~/org-agenda/")
+
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
