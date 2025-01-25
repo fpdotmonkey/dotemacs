@@ -357,6 +357,11 @@ On visually wrapped lines, move the point first to the beginning of the visual l
 
 ;; haskell
 (use-package haskell-mode)
+(use-package lsp-haskell
+  :ensure t
+  :config
+  (setq lsp-haskell-process-path-hie "ghcide")
+  (setq lsp-haskell-process-args-hie '()))
 
 
 ;; Golang
@@ -429,9 +434,6 @@ On visually wrapped lines, move the point first to the beginning of the visual l
 
 
 ;; org-mode stuff
-(use-package "org-bullets")
-(add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
-
 (setq org-default-notes-file (concat org-directory "~/notes.org"))
 
 (add-to-list 'org-agenda-files "~/org-agenda/")
