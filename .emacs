@@ -285,6 +285,10 @@ On visually wrapped lines, move the point first to the beginning of the visual l
   )
 
 
+;; counsel
+(setq counsel-find-file-ignore-regexp "\\`[#~]|\\.~undo-tree~\\'")
+
+
 ;; git
 (use-package "magit")
 (require 'magit)
@@ -357,6 +361,9 @@ On visually wrapped lines, move the point first to the beginning of the visual l
 
 ;; haskell
 (use-package haskell-mode)
+(use-package lsp-ui
+  :ensure t
+  :commands lsp-ui-mode)
 (use-package lsp-haskell
   :ensure t
   :config
@@ -438,11 +445,62 @@ On visually wrapped lines, move the point first to the beginning of the visual l
 
 (add-to-list 'org-agenda-files "~/org-agenda/")
 
+
+;; org-ref
+(setq bibtex-completion-bibliography '("~/org-agenda/bib/references.bib")
+      bibtex-completion-library-path '("~/org-agenda/bib/pdf/")
+      bibtex-completion-notes-path "~/org-agenda/bib/notes/"
+      bibtex-completion-notes-template-multiple-files "* ${author-or-editor}, ${title}, ${journal}, (${year}) :${=type=}: \n\nSee [[cite:&${=key=}]]\n"
+
+      bibtex-completion-additional-search-fields '(keywords)
+      bibtex-completion-display-formats
+      '((article       . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} ${journal:40}")
+	(inbook        . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} Chapter ${chapter:32}")
+	(incollection  . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} ${booktitle:40}")
+	(inproceedings . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*} ${booktitle:40}")
+	(t             . "${=has-pdf=:1}${=has-note=:1} ${year:4} ${author:36} ${title:*}"))
+      bibtex-completion-pdf-open-function
+      (lambda (fpath)
+	;; TODO: use `open` for Darwin and `cmd /c start` for Windows
+	;; TODO: test if both of ^these are correct
+	(call-process "xdg-open" nil 0 nil fpath)))
+
+(require 'bibtex)
+
+(setq bibtex-autokey-year-length 4
+      bibtex-autokey-name-year-separator "-"
+      bibtex-autokey-year-title-separator "-"
+      bibtex-autokey-titleword-separator "-"
+      bibtex-autokey-titlewords 2
+      bibtex-autokey-titlewords-stretch 1
+      bibtex-autokey-titleword-length 5)
+
+(define-key bibtex-mode-map (kbd "C-s-b") 'org-ref-bibtex-hydra/body)
+
+(require 'org-ref)
+(require 'org-ref-ivy)
+
+(setq org-capture-templates
+      '(("w" "Work" entry
+	 (file+headline "~/org-agenda/General.org" "Work")
+	 "%i\n%a\n%?")
+	("k" "Kylän Keittiö" entry
+	 (file+headline "~/org-agenda/General.org" "Kylän Keittiö")
+	 "%i\n%a\n%?")))
+
+(define-key org-mode-map (kbd "C-c ]") 'org-ref-insert-link)
+;; C-c ] => insert a citation
+;; C-u C-c ] => insert a cross-reference
+;; C-u C-u C-c ] => insert a label
+
+;; org generated
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(org-agenda-files
+   '("/home/fp/org-agenda/General.org" "/home/fp/projects/lemmi-drivetrain/doc/idetc-cie.org" "/home/fp/org-agenda/Getting Started with Orgzly.org" "/home/fp/org-agenda/Yana videos.org" "/home/fp/org-agenda/birthdays.org"))
  '(org-babel-load-languages
    '((emacs-lisp . t)
      (latex . t)
